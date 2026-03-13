@@ -1,0 +1,14 @@
+{
+  "domain": "info_lan_for_home_assistant",
+  "name": "Info-Lan for Home Assistant",
+  "version": "0.0.1",
+  "config_flow": true,
+  "codeowners": [
+    "@OddanN"
+  ],
+  "documentation": "https://github.com/OddanN/info_lan_for_home_assistant",
+  "homeassistant": "2025.1.0",
+  "issue_tracker": "https://github.com/OddanN/info_lan_for_home_assistant/issues",
+  "iot_class": "cloud_polling",
+  "requirements": []
+}

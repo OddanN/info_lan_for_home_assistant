@@ -1,0 +1,13 @@
+{
+  "name": "Info-Lan for Home Assistant",
+  "country": "RU",
+  "homeassistant": "2025.1.0",
+  "render_readme": true,
+  "domains": [
+    "info_lan_for_home_assistant"
+  ],
+  "documentation": "https://github.com/OddanN/info_lan_for_home_assistant",
+  "authors": [
+    "OddanN"
+  ]
+}

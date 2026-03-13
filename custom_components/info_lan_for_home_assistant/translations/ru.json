@@ -1,0 +1,67 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Добавление аккаунта Info-Lan",
+        "description": "Введите логин и пароль от личного кабинета Info-Lan.",
+        "data": {
+          "login": "Логин",
+          "password": "Пароль"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Не удалось подключиться к сайту Info-Lan.",
+      "invalid_auth": "Неверный логин или пароль.",
+      "unknown": "Непредвиденная ошибка."
+    },
+    "abort": {
+      "already_configured": "Этот аккаунт уже настроен."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Настройки интеграции",
+        "description": "Задайте период обновления.",
+        "data": {
+          "scan_interval": "Период обновления"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "contract_number": {
+        "name": "Номер договора"
+      },
+      "internet_status": {
+        "name": "Статус доступа в Интернет"
+      },
+      "connection_address": {
+        "name": "Адрес подключения"
+      },
+      "contract_owner": {
+        "name": "Договор оформлен на"
+      },
+      "sms_number": {
+        "name": "Номер для SMS"
+      },
+      "sms_subscription": {
+        "name": "Получать SMS от компании"
+      },
+      "current_tariff": {
+        "name": "Текущий тариф"
+      },
+      "next_tariff": {
+        "name": "Тариф на следующий период"
+      },
+      "current_balance": {
+        "name": "Текущий баланс"
+      },
+      "operations": {
+        "name": "Операции"
+      }
+    }
+  }
+}
