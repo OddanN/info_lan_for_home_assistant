@@ -48,7 +48,7 @@ class InfoLanConfigFlow(ConfigFlow, domain=DOMAIN):
                 password=password,
             )
             try:
-                data = await client.async_fetch_data()
+                data = await client.async_validate_credentials()
             except InfoLanAuthError:
                 errors["base"] = "invalid_auth"
             except InfoLanConnectionError:

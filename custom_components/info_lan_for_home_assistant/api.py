@@ -124,6 +124,10 @@ class InfoLanApiClient:
         except Exception as err:
             raise InfoLanParseError(str(err)) from err
 
+    async def async_validate_credentials(self) -> dict[str, Any]:
+        """Validate credentials and return account data."""
+        return await self.async_fetch_data()
+
 
 def _parse_account_page(html: str, fallback_login: str) -> dict[str, Any]:
     """Parse the returned personal-account HTML."""
@@ -345,19 +349,20 @@ def _split_label_and_meta(title: str) -> tuple[str, str | None]:
 def _normalize_operation_type(row_class: str, amount: float | None) -> str:
     """Map an HTML row class to a stable operation type."""
     lowered = row_class.lower()
+    operation_type = "neutral"
     if "tariff" in lowered:
-        return "tariff"
-    if "service" in lowered:
-        return "service"
-    if "add" in lowered:
-        return "credit"
-    if amount is None:
-        return "unknown"
-    if amount < 0:
-        return "debit"
-    if amount > 0:
-        return "credit"
-    return "neutral"
+        operation_type = "tariff"
+    elif "service" in lowered:
+        operation_type = "service"
+    elif "add" in lowered:
+        operation_type = "credit"
+    elif amount is None:
+        operation_type = "unknown"
+    elif amount < 0:
+        operation_type = "debit"
+    elif amount > 0:
+        operation_type = "credit"
+    return operation_type
 
 
 def _parse_money(value: str) -> tuple[float | None, str | None]:
