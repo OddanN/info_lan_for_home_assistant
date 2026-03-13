@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
@@ -54,7 +55,9 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class InfoLanBaseSensor(CoordinatorEntity[InfoLanDataUpdateCoordinator], SensorEntity):
+class InfoLanBaseSensor(
+    CoordinatorEntity[InfoLanDataUpdateCoordinator], RestoreEntity, SensorEntity
+):
     """Base class for Info-Lan sensors."""
 
     _attr_has_entity_name = True
@@ -63,6 +66,8 @@ class InfoLanBaseSensor(CoordinatorEntity[InfoLanDataUpdateCoordinator], SensorE
         """Initialize a base sensor."""
         super().__init__(coordinator)
         self._entry = entry
+        self._restored_state: str | None = None
+        self._restored_attrs: dict[str, Any] = {}
         contract_number = coordinator.data.get("contract_number") or entry.data[CONF_LOGIN]
         self._contract_slug = slugify(str(contract_number))
         self._attr_device_info = DeviceInfo(
@@ -72,10 +77,36 @@ class InfoLanBaseSensor(CoordinatorEntity[InfoLanDataUpdateCoordinator], SensorE
             name=f"Info-Lan {contract_number}",
         )
 
+    async def async_added_to_hass(self) -> None:
+        """Restore the last known state before the first successful update."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+
+        self._restored_state = last_state.state
+        self._restored_attrs = dict(last_state.attributes)
+
+    @property
+    def available(self) -> bool:
+        """Keep entities available while live or restored data exists."""
+        return self._has_live_data or self._restored_state is not None
+
+    @property
+    def _has_live_data(self) -> bool:
+        """Return whether the coordinator currently has live data."""
+        return bool(self.coordinator.data)
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return common attributes."""
-        attrs = {"last_update": self.coordinator.data.get("updated_at")}
+        attrs = {}
+        last_update = self.coordinator.data.get("updated_at")
+        if last_update is not None:
+            attrs["last_update"] = last_update
+        elif "last_update" in self._restored_attrs:
+            attrs["last_update"] = self._restored_attrs["last_update"]
+
         login = self.coordinator.data.get("login") or self._entry.data.get(CONF_LOGIN)
         if login:
             attrs["login"] = login
@@ -101,7 +132,9 @@ class InfoLanTextSensor(InfoLanBaseSensor):
     def native_value(self) -> str | None:
         """Return the parsed value."""
         value = self.coordinator.data.get(self._description.value_key)
-        return None if value is None else str(value)
+        if value is not None:
+            return str(value)
+        return self._restored_state
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -111,6 +144,8 @@ class InfoLanTextSensor(InfoLanBaseSensor):
             valid_until = self.coordinator.data.get("current_tariff_valid_until")
             if valid_until:
                 attrs["valid_until"] = valid_until
+            elif "valid_until" in self._restored_attrs:
+                attrs["valid_until"] = self._restored_attrs["valid_until"]
         return attrs
 
 
@@ -134,7 +169,14 @@ class InfoLanBalanceSensor(InfoLanBaseSensor):
     def native_value(self) -> float | None:
         """Return the current balance."""
         value = self.coordinator.data.get("current_balance")
-        return value if isinstance(value, (int, float)) else None
+        if isinstance(value, (int, float)):
+            return value
+        if self._restored_state is None:
+            return None
+        try:
+            return float(self._restored_state)
+        except (TypeError, ValueError):
+            return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -148,6 +190,8 @@ class InfoLanBalanceSensor(InfoLanBaseSensor):
             value = self.coordinator.data.get(source_key)
             if value is not None:
                 attrs[attr_name] = value
+            elif attr_name in self._restored_attrs:
+                attrs[attr_name] = self._restored_attrs[attr_name]
         attrs["currency"] = self.native_unit_of_measurement
         return attrs
 
@@ -166,7 +210,14 @@ class InfoLanOperationsSensor(InfoLanBaseSensor):
     def native_value(self) -> int:
         """Return the number of parsed operations."""
         value = self.coordinator.data.get("operations_count")
-        return int(value) if value is not None else 0
+        if value is not None:
+            return int(value)
+        if self._restored_state is None:
+            return 0
+        try:
+            return int(float(self._restored_state))
+        except (TypeError, ValueError):
+            return 0
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -174,8 +225,17 @@ class InfoLanOperationsSensor(InfoLanBaseSensor):
         attrs = super().extra_state_attributes
         operations = self.coordinator.data.get("operations", [])
         recent_operations = self.coordinator.data.get("recent_operations", [])
-        attrs["recent_operations"] = recent_operations
+        attrs["recent_operations"] = (
+            recent_operations
+            if recent_operations
+            else self._restored_attrs.get("recent_operations", [])
+        )
         if operations:
             attrs["first_operation"] = operations[0]
             attrs["latest_operation"] = operations[-1]
+        else:
+            if "first_operation" in self._restored_attrs:
+                attrs["first_operation"] = self._restored_attrs["first_operation"]
+            if "latest_operation" in self._restored_attrs:
+                attrs["latest_operation"] = self._restored_attrs["latest_operation"]
         return attrs
