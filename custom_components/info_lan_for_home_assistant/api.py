@@ -32,6 +32,12 @@ _CONTRACT_RE = re.compile(r"<title>\s*([^<]+?)\s*\(", re.IGNORECASE)
 _DATE_IN_TITLE_RE = re.compile(r"^(?P<label>.+?)\s*\((?P<meta>.+?)\):?$")
 _BALANCE_RE = re.compile(r"(?P<value>[-+]?\d[\d\s]*,\d+)\s*(?P<currency>[^\s.]+\.?)?")
 _OPERATION_DATE_RE = re.compile(r"\b\d{2}\.\d{2}\.\d{4}\b")
+_SIMPLE_SUMMARY_FIELDS = (
+    ("Номер договора", "contract_number"),
+    ("Статус доступа в Интернет", "internet_status"),
+    ("Адрес подключения", "connection_address"),
+    ("Договор оформлен на", "contract_owner"),
+)
 
 
 class InfoLanError(Exception):
@@ -185,32 +191,14 @@ def _parse_summary_table(table_html: str) -> dict[str, Any]:
         if not title:
             continue
 
-        if "Номер для SMS" in title:
-            data["sms_number"] = _extract_sms_number(cells[-1])
-            continue
-        if "Получать SMS от компании" in title:
-            data["sms_subscription"] = _extract_selected_option(cells[-1])
-            continue
-        if "Тариф на следующий период" in title:
-            data["next_tariff"] = _extract_selected_option(cells[-1])
-            continue
-        if "Текущий баланс" in title:
-            _parse_balance_row(data, title, cells[-1])
-            continue
-        if "Текущий тариф" in title:
-            _parse_current_tariff_row(data, title, cells[-1])
+        if _parse_special_summary_row(data, title, cells[-1]):
             continue
 
         value = _normalize_space(_strip_tags(cells[-1]))
-        if "Номер договора" in title:
-            data["contract_number"] = value
-        elif "Статус доступа в Интернет" in title:
-            data["internet_status"] = value
-        elif "Адрес подключения" in title:
-            data["connection_address"] = value
-        elif "Договор оформлен на" in title:
-            data["contract_owner"] = value
-        elif "Максимальный обещанный платеж" in title:
+        if _parse_simple_summary_field(data, title, value):
+            continue
+
+        if "Максимальный обещанный платеж" in title:
             promise_value, currency = _parse_money(value)
             data["promised_payment_limit"] = promise_value
             data["promised_payment_currency"] = currency or DEFAULT_CURRENCY
@@ -220,6 +208,45 @@ def _parse_summary_table(table_html: str) -> dict[str, Any]:
             data["block_threshold_currency"] = currency or DEFAULT_CURRENCY
 
     return data
+
+
+def _parse_special_summary_row(data: dict[str, Any], title: str, value_html: str) -> bool:
+    """Parse summary rows that need special handling."""
+    for marker, handler in (
+            ("Номер для SMS", _parse_sms_number_row),
+            ("Получать SMS от компании", _parse_sms_subscription_row),
+            ("Тариф на следующий период", _parse_next_tariff_row),
+            ("Текущий баланс", _parse_balance_row),
+            ("Текущий тариф", _parse_current_tariff_row),
+    ):
+        if marker in title:
+            handler(data, title, value_html)
+            return True
+    return False
+
+
+def _parse_simple_summary_field(data: dict[str, Any], title: str, value: str) -> bool:
+    """Parse simple key/value summary rows."""
+    for marker, target_key in _SIMPLE_SUMMARY_FIELDS:
+        if marker in title:
+            data[target_key] = value
+            return True
+    return False
+
+
+def _parse_sms_number_row(data: dict[str, Any], _title: str, value_html: str) -> None:
+    """Parse the SMS phone row."""
+    data["sms_number"] = _extract_sms_number(value_html)
+
+
+def _parse_sms_subscription_row(data: dict[str, Any], _title: str, value_html: str) -> None:
+    """Parse the SMS subscription row."""
+    data["sms_subscription"] = _extract_selected_option(value_html)
+
+
+def _parse_next_tariff_row(data: dict[str, Any], _title: str, value_html: str) -> None:
+    """Parse the next tariff row."""
+    data["next_tariff"] = _extract_selected_option(value_html)
 
 
 def _parse_balance_row(data: dict[str, Any], title: str, value_html: str) -> None:

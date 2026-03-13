@@ -14,7 +14,7 @@ from .api import (
     InfoLanConnectionError,
     InfoLanError,
 )
-from .const import CONF_LOGIN, DEFAULT_SCAN_INTERVAL_HOURS, DOMAIN
+from .const import CONF_LOGIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_HOURS, DOMAIN
 from .options_flow import InfoLanOptionsFlow
 
 
@@ -23,6 +23,10 @@ class InfoLanConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Info-Lan."""
 
     VERSION = 1
+
+    def is_matching(self, _other_flow: ConfigFlow) -> bool:
+        """Return whether another flow matches this one."""
+        return False
 
     async def async_step_user(
         self,
