@@ -7,14 +7,11 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD
+from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
 
-from .api import (
-    InfoLanApiClient,
-    InfoLanAuthError,
-    InfoLanConnectionError,
-    InfoLanError,
-)
-from .const import CONF_LOGIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_HOURS, DOMAIN
+from .api import InfoLanApiClient, InfoLanAuthError, InfoLanConnectionError, InfoLanError
+from .const import CONF_LOGIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_HOURS, DOMAIN, MAX_SCAN_INTERVAL_HOURS, \
+    MIN_SCAN_INTERVAL_HOURS
 from .options_flow import InfoLanOptionsFlow
 
 
@@ -24,63 +21,78 @@ class InfoLanConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        self._login: str | None = None
+        self._password: str | None = None
+        self._title: str | None = None
+
     def is_matching(self, _other_flow: ConfigFlow) -> bool:
-        """Return whether another flow matches this one."""
         return False
 
-    async def async_step_user(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Handle the initial step."""
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
-
         if user_input is not None:
-            login = user_input[CONF_LOGIN].strip()
-            password = user_input[CONF_PASSWORD]
+            self._login = user_input[CONF_LOGIN].strip()
+            self._password = user_input[CONF_PASSWORD]
 
-            await self.async_set_unique_id(login.lower())
+            await self.async_set_unique_id(self._login.lower())
             self._abort_if_unique_id_configured()
 
-            client = InfoLanApiClient(
-                hass=self.hass,
-                login=login,
-                password=password,
-            )
+            client = InfoLanApiClient(hass=self.hass, login=self._login, password=self._password)
             try:
                 data = await client.async_validate_credentials()
             except InfoLanAuthError:
-                errors["base"] = "invalid_auth"
+                errors['base'] = 'invalid_auth'
             except InfoLanConnectionError:
-                errors["base"] = "cannot_connect"
+                errors['base'] = 'cannot_connect'
             except InfoLanError:
-                errors["base"] = "unknown"
+                errors['base'] = 'unknown'
             else:
-                title = data.get("contract_number") or login
-                owner = data.get("contract_owner")
+                title = data.get('contract_number') or self._login
+                owner = data.get('contract_owner')
                 if owner:
                     title = f"{title} ({owner})"
-                return self.async_create_entry(
-                    title=title,
-                    data={
-                        CONF_LOGIN: login,
-                        CONF_PASSWORD: password,
-                    },
-                    options={CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL_HOURS},
-                )
+                self._title = title
+                return await self.async_step_settings()
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_LOGIN): str,
-                    vol.Required(CONF_PASSWORD): str,
-                }
-            ),
+            step_id='user',
+            data_schema=vol.Schema({
+                vol.Required(CONF_LOGIN, default=self._login or ''): str,
+                vol.Required(CONF_PASSWORD, default=self._password or ''): str,
+            }),
             errors=errors,
+        )
+
+    async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if self._login is None or self._password is None:
+            return self.async_abort(reason='unknown')
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self._title or self._login,
+                data={CONF_LOGIN: self._login, CONF_PASSWORD: self._password},
+                options={CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])},
+            )
+
+        return self.async_show_form(
+            step_id='settings',
+            data_schema=vol.Schema({
+                vol.Required(
+                    CONF_SCAN_INTERVAL,
+                    default=DEFAULT_SCAN_INTERVAL_HOURS,
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL_HOURS,
+                        max=MAX_SCAN_INTERVAL_HOURS,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement='h',
+                    )
+                )
+            }),
         )
 
     @staticmethod
     def async_get_options_flow(config_entry: ConfigEntry) -> InfoLanOptionsFlow:
-        """Get the options flow for this handler."""
         return InfoLanOptionsFlow(config_entry)
