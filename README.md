@@ -8,75 +8,75 @@
 <!--suppress HtmlDeprecatedAttribute -->
 <p align="center">
   <!--suppress CheckImageSize -->
-<img src="https://raw.githubusercontent.com/OddanN/info_lan_for_home_assistant/main/custom_components/info_lan_for_home_assistant/brand/logo.png" alt="Info-Lan logo" width="200">
+  <img src="https://raw.githubusercontent.com/OddanN/info_lan_for_home_assistant/main/custom_components/info_lan_for_home_assistant/brand/logo.png" alt="Info-Lan logo" width="200">
 </p>
 
-The Info-Lan Integration allows you to connect your Home Assistant instance to the [Info-Lan](https://info-lan.ru/)
-personal account page and expose the main contract, tariff, balance, and payment history data as Home Assistant
-entities.
+Интеграция Info-Lan получает данные из личного кабинета [Info-Lan](https://info-lan.ru/) и создаёт сущности Home
+Assistant с основными данными по договору, тарифу, балансу и операциям по счёту.
 
-## Installation
+## Установка
 
-Installation is easiest via the [Home Assistant Community Store
-(HACS)](https://hacs.xyz/), which is the best place to get third-party integrations for Home Assistant. Once you have
-HACS set up, simply click the button below (requires My Home Assistant configured) or follow the
-[instructions for adding a custom repository](https://hacs.xyz/docs/faq/custom_repositories) and then the integration
-will be available to install like any other.
+Проще всего установить интеграцию через [Home Assistant Community Store (HACS)](https://hacs.xyz/). После настройки HACS
+нажмите кнопку ниже
+(требуется настроенный My Home Assistant)
+или [добавьте репозиторий вручную как custom repository](https://hacs.xyz/docs/faq/custom_repositories),
+после чего интеграция станет доступна для установки как обычная HACS-интеграция.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg?style=flat-square)](https://my.home-assistant.io/redirect/hacs_repository/?owner=OddanN&repository=info_lan_for_home_assistant&category=integration)
 
-## Configuration
+## Настройка
 
-After installing, you can configure the integration using the Integrations UI. No manual YAML configuration is
-required. Go to Settings / Devices & Services and press the Add Integration button, or click the shortcut button below
-(requires My Home Assistant configured).
+После установки настройте интеграцию через интерфейс Home Assistant. YAML-конфигурация не требуется.
+Перейдите в `Настройки` → `Устройства и службы`, нажмите `Добавить интеграцию`
+или воспользуйтесь кнопкой ниже.
 
 [![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg?style=flat-square)](https://my.home-assistant.io/redirect/config_flow_start/?domain=info_lan_for_home_assistant)
 
-### Setup Wizard
+### Подключение
 
-- **Login**: Your Info-Lan account login.
-- **Password**: Your Info-Lan account password.
+- Введите логин и пароль от личного кабинета Info-Lan.
+- Завершите настройку. Интеграция выполнит авторизацию и создаст сущности аккаунта.
 
-### Integration Options
+### Параметры интеграции
 
-- **Update Interval**: Polling interval in hours. Default is 12 hours, minimum is 1 hour, maximum is 24 hours.
+- `Интервал обновления`: период опроса в часах. По умолчанию `12`, минимум `1`, максимум `24`.
 
-## Usage
+## Entities
 
-### Entities
+На каждую пару логин/пароль интеграция создаёт одно устройство личного кабинета.
+Каждое устройство содержит следующие **основные** сущности:
 
-Once configured, the integration creates one device for the Info-Lan contract and the following entities:
+- `Баланс денег`: денежный баланс лицевого счёта в `₽`.
+  Атрибуты включают `top up your balance`, `Total number of operations`, `Operation 1 ... Operation 10`,
+  а также служебные поля баланса `balance_timestamp`, `promised_payment_limit`, `block_threshold` и `currency`.
+- `Текущий тариф`: краткое название текущего тарифа.
+  Атрибуты включают `full_name`, `valid_until`, `next_tariff` и `next_tariff_full_name`.
+- `Изменение тарифа`: показывает `Запланировано` или `Не запланировано`.
+  Атрибуты включают данные о текущем и следующем тарифе.
+- `Обновить`: кнопка принудительного обновления данных.
+- `Интервал обновления`: number-сущность для настройки периода опроса.
 
-- `sensor.info_lan_<suffix>_contract_number`: Contract number.
-- `sensor.info_lan_<suffix>_internet_status`: Internet access status.
-- `sensor.info_lan_<suffix>_connection_address`: Connection address.
-- `sensor.info_lan_<suffix>_contract_owner`: Contract owner.
-- `sensor.info_lan_<suffix>_sms_number`: SMS phone number.
-- `sensor.info_lan_<suffix>_sms_subscription`: Selected company SMS subscription mode.
-- `sensor.info_lan_<suffix>_current_tariff`: Current tariff. Includes the tariff validity date in attributes.
-- `sensor.info_lan_<suffix>_next_tariff`: Tariff selected for the next period.
-- `sensor.info_lan_<suffix>_current_balance`: Current balance as a monetary sensor. Includes balance timestamp,
-  promised payment limit, and block threshold in attributes.
-- `sensor.info_lan_<suffix>_operations`: Total number of parsed operations. Includes recent operations, first
-  operation, and latest operation in attributes.
+Устройство также содержит **диагностические** сущности:
 
-### Notes About Operations
+- `Номер счета`
+- `Контрагент`
+  Атрибуты: `sms_number`, `sms_subscription`
+- `Адрес договора`
+- `Статус доступа в Интернет`
+- `Последнее обновление`
 
-Info-Lan returns the entire payment history table in one HTML page. To keep entity state compact, the integration stores
-the total operation count in the sensor state and only keeps the recent operations in attributes instead of the full
-history.
+По умолчанию часть диагностических сущностей может быть отключена в entity registry.
 
-## Notes
+## Примечания
 
-- The integration uses the Info-Lan website at `https://stats.info-lan.ru/` and parses the returned HTML page.
-- The current implementation exposes sensor entities only.
-- For support or to report issues, please open an issue on the
+- Интеграция работает через сайт `https://stats.info-lan.ru/` и парсит HTML-страницу личного кабинета.
+- Для авторизации используются те же логин и пароль, что и в личном кабинете Info-Lan.
+- Если вы нашли ошибку или хотите предложить улучшение, создайте issue в
   [GitHub repository](https://github.com/OddanN/info_lan_for_home_assistant/issues).
 
 ## Debug
 
-For DEBUG add to `configuration.yaml`
+Для включения DEBUG-логов добавьте в `configuration.yaml`:
 
 ```yaml
 logger:
@@ -87,4 +87,4 @@ logger:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Проект распространяется по лицензии MIT. Подробности в файле [LICENSE](LICENSE).
