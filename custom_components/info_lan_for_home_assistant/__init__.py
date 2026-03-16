@@ -15,7 +15,7 @@ from .coordinator import InfoLanDataUpdateCoordinator
 type InfoLanConfigEntry = ConfigEntry[InfoLanApiClient]
 
 PLATFORMS = ["sensor", "number", "button"]
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)  # pylint: disable=invalid-name
 
 
 async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
