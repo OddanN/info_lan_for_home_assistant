@@ -68,13 +68,14 @@ class InfoLanBaseSensor(
         self._entry = entry
         self._restored_state: str | None = None
         self._restored_attrs: dict[str, Any] = {}
-        contract_number = coordinator.data.get("contract_number") or entry.data[CONF_LOGIN]
-        self._contract_slug = slugify(str(contract_number))
+        login = entry.data[CONF_LOGIN]
+        self._login = login
+        self._login_slug = slugify(str(login))
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"contract_{contract_number}")},
+            identifiers={(DOMAIN, f"login_{self._login_slug}")},
             manufacturer="Info-Lan",
             model="Personal Account",
-            name=f"Info-Lan {contract_number}",
+            name=f"Info-Lan: {login}",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -126,7 +127,8 @@ class InfoLanTextSensor(InfoLanBaseSensor):
         super().__init__(coordinator, entry)
         self._description = description
         self._attr_translation_key = description.translation_key
-        self._attr_unique_id = f"{entry.entry_id}_{self._contract_slug}_{description.key}"
+        self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_{description.key}"
+        self.entity_id = f"sensor.infolan_{self._login_slug}_{description.key}"
 
     @property
     def native_value(self) -> str | None:
@@ -158,7 +160,8 @@ class InfoLanBalanceSensor(InfoLanBaseSensor):
     def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the balance sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_{self._contract_slug}_current_balance"
+        self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_current_balance"
+        self.entity_id = f"sensor.infolan_{self._login_slug}_current_balance"
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -204,7 +207,8 @@ class InfoLanOperationsSensor(InfoLanBaseSensor):
     def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the operations sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_{self._contract_slug}_operations"
+        self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_operations"
+        self.entity_id = f"sensor.infolan_{self._login_slug}_operations"
 
     @property
     def native_value(self) -> int:

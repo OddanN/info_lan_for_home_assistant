@@ -8,6 +8,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import slugify
 
 from .const import CONF_LOGIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_HOURS, DOMAIN, MAX_SCAN_INTERVAL_HOURS, \
     MIN_SCAN_INTERVAL_HOURS
@@ -32,13 +33,15 @@ class InfoLanScanIntervalNumber(NumberEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator) -> None:
         self.hass = hass
         self._entry = entry
-        contract_number = coordinator.data.get('contract_number') or entry.data.get(CONF_LOGIN)
-        self._attr_unique_id = f"{entry.entry_id}_{contract_number}_scan_interval"
+        login = entry.data[CONF_LOGIN]
+        login_slug = slugify(str(login))
+        self._attr_unique_id = f"{entry.entry_id}_{login_slug}_scan_interval"
+        self.entity_id = f"number.infolan_{login_slug}_scan_interval"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"contract_{contract_number}")},
+            identifiers={(DOMAIN, f"login_{login_slug}")},
             manufacturer='Info-Lan',
             model='Personal Account',
-            name=f"Info-Lan {contract_number}",
+            name=f"Info-Lan: {login}",
         )
 
     @property

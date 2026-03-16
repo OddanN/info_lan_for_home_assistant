@@ -15,6 +15,11 @@ from .const import CONF_LOGIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_HOURS, 
 from .options_flow import InfoLanOptionsFlow
 
 
+def _build_entry_title(login: str) -> str:
+    """Build the config entry title."""
+    return f"Info-Lan: {login}"
+
+
 # noinspection PyTypeChecker
 class InfoLanConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Info-Lan."""
@@ -48,11 +53,7 @@ class InfoLanConfigFlow(ConfigFlow, domain=DOMAIN):
             except InfoLanError:
                 errors['base'] = 'unknown'
             else:
-                title = data.get('contract_number') or self._login
-                owner = data.get('contract_owner')
-                if owner:
-                    title = f"{title} ({owner})"
-                self._title = title
+                self._title = _build_entry_title(self._login)
                 return await self.async_step_settings()
 
         return self.async_show_form(
@@ -70,7 +71,7 @@ class InfoLanConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             return self.async_create_entry(
-                title=self._title or self._login,
+                title=self._title or _build_entry_title(self._login),
                 data={CONF_LOGIN: self._login, CONF_PASSWORD: self._password},
                 options={CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])},
             )

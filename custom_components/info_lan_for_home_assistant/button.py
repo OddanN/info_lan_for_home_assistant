@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import slugify
 
 from .const import CONF_LOGIN, DOMAIN
 
@@ -27,13 +28,15 @@ class InfoLanRefreshButton(CoordinatorEntity, ButtonEntity):
     def __init__(self, entry: ConfigEntry, coordinator) -> None:
         CoordinatorEntity.__init__(self, coordinator)
         ButtonEntity.__init__(self)
-        contract_number = coordinator.data.get('contract_number') or entry.data.get(CONF_LOGIN)
-        self._attr_unique_id = f"{entry.entry_id}_{contract_number}_refresh"
+        login = entry.data[CONF_LOGIN]
+        login_slug = slugify(str(login))
+        self._attr_unique_id = f"{entry.entry_id}_{login_slug}_refresh"
+        self.entity_id = f"button.infolan_{login_slug}_refresh"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"contract_{contract_number}")},
+            identifiers={(DOMAIN, f"login_{login_slug}")},
             manufacturer='Info-Lan',
             model='Personal Account',
-            name=f"Info-Lan {contract_number}",
+            name=f"Info-Lan: {login}",
         )
 
     async def async_press(self) -> None:
