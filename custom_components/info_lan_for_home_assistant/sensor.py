@@ -1,4 +1,4 @@
-"""Version: 0.0.1. Sensor platform for the Info-Lan integration."""
+"""Version: 1.0.0. Sensor platform for the Info-Lan integration."""
 
 from __future__ import annotations
 

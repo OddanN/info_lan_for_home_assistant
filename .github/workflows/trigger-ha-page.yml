@@ -1,3 +1,4 @@
+# Version: 1.0.0
 name: Trigger ha_page deploy
 
 on:

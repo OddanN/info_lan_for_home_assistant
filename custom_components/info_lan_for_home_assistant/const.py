@@ -1,4 +1,4 @@
-"""Version: 0.0.1. Constants for the Info-Lan integration."""
+"""Version: 1.0.0. Constants for the Info-Lan integration."""
 
 DOMAIN = "info_lan_for_home_assistant"
 

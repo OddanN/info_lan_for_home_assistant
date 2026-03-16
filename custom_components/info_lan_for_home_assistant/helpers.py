@@ -1,4 +1,4 @@
-"""Shared helpers for the Info-Lan integration."""
+"""Version: 1.0.0. Shared helpers for the Info-Lan integration."""
 
 from __future__ import annotations
 

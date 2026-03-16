@@ -1,4 +1,4 @@
-"""Version: 0.0.1. Client and parser for the Info-Lan personal account page."""
+"""Version: 1.0.0. Client and parser for the Info-Lan personal account page."""
 
 # pylint: disable=line-too-long
 
