@@ -1,5 +1,7 @@
 """Version: 0.0.1. Client and parser for the Info-Lan personal account page."""
 
+# pylint: disable=line-too-long
+
 from __future__ import annotations
 
 import logging

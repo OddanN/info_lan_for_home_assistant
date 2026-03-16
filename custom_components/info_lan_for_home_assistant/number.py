@@ -19,7 +19,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities([InfoLanScanIntervalNumber(hass, entry)])
 
 
-class InfoLanScanIntervalNumber(NumberEntity):
+class InfoLanScanIntervalNumber(NumberEntity):  # pylint: disable=abstract-method
     """Config entity for scan interval tuning."""
 
     _attr_translation_key = 'scan_interval'
