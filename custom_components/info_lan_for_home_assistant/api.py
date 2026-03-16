@@ -385,6 +385,26 @@ def _parse_money(value: str) -> tuple[float | None, str | None]:
     return amount, currency
 
 
+def _parse_money(value: str) -> tuple[float | None, str | None]:
+    """Parse a Russian money string."""
+    match = _BALANCE_RE.search(value)
+    if not match:
+        return None, None
+
+    normalized = match.group("value").replace(" ", "").replace(",", ".")
+    try:
+        amount = float(Decimal(normalized))
+    except (InvalidOperation, ValueError):
+        _LOGGER.debug("Failed to parse money value from %s", value)
+        amount = None
+
+    currency_raw = match.group("currency") or ""
+    currency = currency_raw.rstrip(".").upper() if currency_raw else None
+    if currency in {"RUB", "РУБ", "Р РЈР‘", "₽"}:
+        currency = DEFAULT_CURRENCY
+    return amount, currency
+
+
 def _strip_tags(value: str) -> str:
     """Strip HTML tags and decode entities."""
     return unescape(_TAG_RE.sub(" ", value)).replace("\xa0", " ")

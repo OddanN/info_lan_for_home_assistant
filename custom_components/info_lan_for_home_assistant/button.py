@@ -20,9 +20,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class InfoLanRefreshButton(CoordinatorEntity, ButtonEntity):
-    _attr_name = 'Refresh'
+    _attr_translation_key = 'refresh'
     _attr_icon = 'mdi:refresh'
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_has_entity_name = True
 
     def __init__(self, entry: ConfigEntry, coordinator) -> None:

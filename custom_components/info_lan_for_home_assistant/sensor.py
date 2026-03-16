@@ -7,15 +7,19 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import CONF_LOGIN, DEFAULT_CURRENCY, DOMAIN
 from .coordinator import InfoLanDataUpdateCoordinator
+
+TOP_UP_YOUR_BALANCE_URL = "https://info-lan.ru/up/"
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,17 +29,37 @@ class InfoLanSensorDescription:
     key: str
     translation_key: str
     value_key: str
+    icon: str
+    entity_category: EntityCategory | None = None
 
 
 SENSOR_DESCRIPTIONS: tuple[InfoLanSensorDescription, ...] = (
-    InfoLanSensorDescription("contract_number", "contract_number", "contract_number"),
-    InfoLanSensorDescription("internet_status", "internet_status", "internet_status"),
-    InfoLanSensorDescription("connection_address", "connection_address", "connection_address"),
-    InfoLanSensorDescription("contract_owner", "contract_owner", "contract_owner"),
-    InfoLanSensorDescription("sms_number", "sms_number", "sms_number"),
-    InfoLanSensorDescription("sms_subscription", "sms_subscription", "sms_subscription"),
-    InfoLanSensorDescription("current_tariff", "current_tariff", "current_tariff"),
-    InfoLanSensorDescription("next_tariff", "next_tariff", "next_tariff"),
+    InfoLanSensorDescription(
+        "contract_number",
+        "contract_number",
+        "contract_number",
+        "mdi:file-document-outline",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    InfoLanSensorDescription("internet_status", "internet_status", "internet_status", "mdi:web"),
+    InfoLanSensorDescription(
+        "connection_address",
+        "connection_address",
+        "connection_address",
+        "mdi:map-marker",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    InfoLanSensorDescription(
+        "contract_owner",
+        "contract_owner",
+        "contract_owner",
+        "mdi:account",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    InfoLanSensorDescription("sms_number", "sms_number", "sms_number", "mdi:phone"),
+    InfoLanSensorDescription("sms_subscription", "sms_subscription", "sms_subscription", "mdi:message-text"),
+    InfoLanSensorDescription("current_tariff", "current_tariff", "current_tariff", "mdi:speedometer"),
+    InfoLanSensorDescription("next_tariff", "next_tariff", "next_tariff", "mdi:calendar-arrow-right"),
 )
 
 
@@ -51,7 +75,7 @@ async def async_setup_entry(
         for description in SENSOR_DESCRIPTIONS
     ]
     entities.append(InfoLanBalanceSensor(coordinator, entry))
-    entities.append(InfoLanOperationsSensor(coordinator, entry))
+    entities.append(InfoLanLastUpdateSensor(coordinator, entry))
     async_add_entities(entities)
 
 
@@ -102,16 +126,26 @@ class InfoLanBaseSensor(
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return common attributes."""
         attrs = {}
-        last_update = self.coordinator.data.get("updated_at")
-        if last_update is not None:
-            attrs["last_update"] = last_update
-        elif "last_update" in self._restored_attrs:
-            attrs["last_update"] = self._restored_attrs["last_update"]
-
         login = self.coordinator.data.get("login") or self._entry.data.get(CONF_LOGIN)
         if login:
             attrs["login"] = login
         return attrs
+
+
+def _format_operation(operation: dict[str, Any]) -> str:
+    """Convert an operation dict to a compact human-readable string."""
+    date = operation.get("date")
+    title = operation.get("operation")
+    amount = operation.get("amount")
+    currency = operation.get("currency")
+
+    parts = [str(part) for part in (date, title) if part]
+    if amount is not None:
+        amount_part = str(amount)
+        if currency:
+            amount_part = f"{amount_part} {currency}"
+        parts.append(amount_part)
+    return " | ".join(parts)
 
 
 class InfoLanTextSensor(InfoLanBaseSensor):
@@ -127,6 +161,8 @@ class InfoLanTextSensor(InfoLanBaseSensor):
         super().__init__(coordinator, entry)
         self._description = description
         self._attr_translation_key = description.translation_key
+        self._attr_icon = description.icon
+        self._attr_entity_category = description.entity_category
         self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_{description.key}"
         self.entity_id = f"sensor.infolan_{self._login_slug}_{description.key}"
 
@@ -156,6 +192,7 @@ class InfoLanBalanceSensor(InfoLanBaseSensor):
 
     _attr_translation_key = "current_balance"
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_icon = "mdi:wallet-outline"
 
     def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the balance sensor."""
@@ -196,50 +233,42 @@ class InfoLanBalanceSensor(InfoLanBaseSensor):
             elif attr_name in self._restored_attrs:
                 attrs[attr_name] = self._restored_attrs[attr_name]
         attrs["currency"] = self.native_unit_of_measurement
+        attrs["top up your balance"] = TOP_UP_YOUR_BALANCE_URL
+
+        total_operations = self.coordinator.data.get("operations_count")
+        if total_operations is None:
+            total_operations = self._restored_attrs.get("Total number of operations")
+        if total_operations is not None:
+            attrs["Total number of operations"] = int(total_operations)
+
+        operations = self.coordinator.data.get("operations")
+        if not operations:
+            operations = self._restored_attrs.get("recent_operations") or []
+        for index, operation in enumerate(reversed(list(operations)[-10:]), start=1):
+            attrs[f"Operation {index}"] = _format_operation(operation)
         return attrs
 
 
-class InfoLanOperationsSensor(InfoLanBaseSensor):
-    """Operations list summary sensor."""
+class InfoLanLastUpdateSensor(InfoLanBaseSensor):
+    """Last successful update timestamp sensor."""
 
-    _attr_translation_key = "operations"
+    _attr_translation_key = "last_update"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-check-outline"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the operations sensor."""
+        """Initialize the last update sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_operations"
-        self.entity_id = f"sensor.infolan_{self._login_slug}_operations"
+        self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_last_update"
+        self.entity_id = f"sensor.infolan_{self._login_slug}_last_update"
 
     @property
-    def native_value(self) -> int:
-        """Return the number of parsed operations."""
-        value = self.coordinator.data.get("operations_count")
-        if value is not None:
-            return int(value)
-        if self._restored_state is None:
-            return 0
-        try:
-            return int(float(self._restored_state))
-        except (TypeError, ValueError):
-            return 0
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return recent operations and aggregates."""
-        attrs = super().extra_state_attributes
-        operations = self.coordinator.data.get("operations", [])
-        recent_operations = self.coordinator.data.get("recent_operations", [])
-        attrs["recent_operations"] = (
-            recent_operations
-            if recent_operations
-            else self._restored_attrs.get("recent_operations", [])
-        )
-        if operations:
-            attrs["first_operation"] = operations[0]
-            attrs["latest_operation"] = operations[-1]
-        else:
-            if "first_operation" in self._restored_attrs:
-                attrs["first_operation"] = self._restored_attrs["first_operation"]
-            if "latest_operation" in self._restored_attrs:
-                attrs["latest_operation"] = self._restored_attrs["latest_operation"]
-        return attrs
+    def native_value(self):
+        """Return the last successful update time."""
+        value = self.coordinator.data.get("updated_at")
+        if value is None:
+            value = self._restored_state
+        if value is None:
+            return None
+        return dt_util.parse_datetime(str(value))

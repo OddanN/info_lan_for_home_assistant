@@ -10,10 +10,10 @@
         }
       },
       "settings": {
-        "title": "????????? ??????????",
-        "description": "??????? ?????? ?????????? ??????.",
+        "title": "Настройки интеграции",
+        "description": "Задайте период обновления.",
         "data": {
-          "scan_interval": "?????? ??????????"
+          "scan_interval": "Период обновления"
         }
       }
     },
@@ -38,18 +38,28 @@
     }
   },
   "entity": {
+    "button": {
+      "refresh": {
+        "name": "Обновить"
+      }
+    },
+    "number": {
+      "scan_interval": {
+        "name": "Период обновления"
+      }
+    },
     "sensor": {
       "contract_number": {
-        "name": "Номер договора"
+        "name": "Номер счета"
       },
       "internet_status": {
         "name": "Статус доступа в Интернет"
       },
       "connection_address": {
-        "name": "Адрес подключения"
+        "name": "Адрес договора"
       },
       "contract_owner": {
-        "name": "Договор оформлен на"
+        "name": "Контрагент"
       },
       "sms_number": {
         "name": "Номер для SMS"
@@ -64,10 +74,13 @@
         "name": "Тариф на следующий период"
       },
       "current_balance": {
-        "name": "Текущий баланс"
+        "name": "Баланс денег"
       },
       "operations": {
         "name": "Операции"
+      },
+      "last_update": {
+        "name": "Последнее обновление"
       }
     }
   }
