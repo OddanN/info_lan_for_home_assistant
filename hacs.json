@@ -2,8 +2,5 @@
   "name": "Info-Lan for Home Assistant",
   "country": "RU",
   "homeassistant": "2025.1.0",
-  "render_readme": true,
-  "domains": [
-    "info_lan_for_home_assistant"
-  ]
+  "render_readme": true
 }
