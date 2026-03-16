@@ -70,9 +70,6 @@
       "current_tariff": {
         "name": "Текущий тариф"
       },
-      "next_tariff": {
-        "name": "Тариф на следующий период"
-      },
       "current_balance": {
         "name": "Баланс денег"
       },
@@ -81,6 +78,9 @@
       },
       "last_update": {
         "name": "Последнее обновление"
+      },
+      "tariff_change": {
+        "name": "Изменение тарифа"
       }
     }
   }

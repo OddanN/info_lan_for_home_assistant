@@ -20,6 +20,8 @@ from .const import CONF_LOGIN, DEFAULT_CURRENCY, DOMAIN
 from .coordinator import InfoLanDataUpdateCoordinator
 
 TOP_UP_YOUR_BALANCE_URL = "https://info-lan.ru/up/"
+TARIFF_CHANGE_PLANNED = "Запланировано"
+TARIFF_CHANGE_NOT_PLANNED = "Не запланировано"
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +33,7 @@ class InfoLanSensorDescription:
     value_key: str
     icon: str
     entity_category: EntityCategory | None = None
+    enabled_by_default: bool = True
 
 
 SENSOR_DESCRIPTIONS: tuple[InfoLanSensorDescription, ...] = (
@@ -41,7 +44,14 @@ SENSOR_DESCRIPTIONS: tuple[InfoLanSensorDescription, ...] = (
         "mdi:card-account-details-outline",
         EntityCategory.DIAGNOSTIC,
     ),
-    InfoLanSensorDescription("internet_status", "internet_status", "internet_status", "mdi:web"),
+    InfoLanSensorDescription(
+        "internet_status",
+        "internet_status",
+        "internet_status",
+        "mdi:web",
+        EntityCategory.DIAGNOSTIC,
+        False,
+    ),
     InfoLanSensorDescription(
         "connection_address",
         "connection_address",
@@ -57,7 +67,6 @@ SENSOR_DESCRIPTIONS: tuple[InfoLanSensorDescription, ...] = (
         EntityCategory.DIAGNOSTIC,
     ),
     InfoLanSensorDescription("current_tariff", "current_tariff", "current_tariff", "mdi:speedometer"),
-    InfoLanSensorDescription("next_tariff", "next_tariff", "next_tariff", "mdi:calendar-arrow-right"),
 )
 
 
@@ -74,6 +83,7 @@ async def async_setup_entry(
     ]
     entities.append(InfoLanBalanceSensor(coordinator, entry))
     entities.append(InfoLanLastUpdateSensor(coordinator, entry))
+    entities.append(InfoLanTariffChangeSensor(coordinator, entry))
     async_add_entities(entities)
 
 
@@ -161,6 +171,7 @@ class InfoLanTextSensor(InfoLanBaseSensor):
         self._attr_translation_key = description.translation_key
         self._attr_icon = description.icon
         self._attr_entity_category = description.entity_category
+        self._attr_entity_registry_enabled_default = description.enabled_by_default
         self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_{description.key}"
         self.entity_id = f"sensor.infolan_{self._login_slug}_{description.key}"
 
@@ -187,12 +198,58 @@ class InfoLanTextSensor(InfoLanBaseSensor):
                 elif attr_name in self._restored_attrs:
                     attrs[attr_name] = self._restored_attrs[attr_name]
         if self._description.key == "current_tariff":
+            full_name = self.coordinator.data.get("current_tariff_full_name")
+            if full_name:
+                attrs["full_name"] = full_name
+            elif "full_name" in self._restored_attrs:
+                attrs["full_name"] = self._restored_attrs["full_name"]
+            next_tariff = self.coordinator.data.get("next_tariff")
+            if next_tariff:
+                attrs["next_tariff"] = next_tariff
+            elif "next_tariff" in self._restored_attrs:
+                attrs["next_tariff"] = self._restored_attrs["next_tariff"]
+            next_tariff_full_name = self.coordinator.data.get("next_tariff_full_name")
+            if next_tariff_full_name:
+                attrs["next_tariff_full_name"] = next_tariff_full_name
+            elif "next_tariff_full_name" in self._restored_attrs:
+                attrs["next_tariff_full_name"] = self._restored_attrs["next_tariff_full_name"]
             valid_until = self.coordinator.data.get("current_tariff_valid_until")
             if valid_until:
                 attrs["valid_until"] = valid_until
             elif "valid_until" in self._restored_attrs:
                 attrs["valid_until"] = self._restored_attrs["valid_until"]
         return attrs
+
+
+def _build_tariff_change_attributes(payload: dict[str, Any], restored_attrs: dict[str, Any]) -> dict[str, Any]:
+    """Build tariff change attributes."""
+    current_tariff = str(payload.get("current_tariff") or "").strip()
+    next_tariff = str(payload.get("next_tariff") or "").strip()
+    current_full_name = str(payload.get("current_tariff_full_name") or "").strip()
+    next_full_name = str(payload.get("next_tariff_full_name") or "").strip()
+
+    if not current_tariff:
+        current_tariff = str(restored_attrs.get("current_tariff") or "").strip()
+    if not next_tariff:
+        next_tariff = str(restored_attrs.get("next_tariff") or "").strip()
+    if not current_full_name:
+        current_full_name = str(restored_attrs.get("current_tariff_full_name") or "").strip()
+    if not next_full_name:
+        next_full_name = str(restored_attrs.get("next_tariff_full_name") or "").strip()
+
+    if not current_tariff or not next_tariff or current_tariff == next_tariff:
+        return {}
+
+    attributes = {
+        "name": f'текущий "{current_tariff}" будет "{next_tariff}"',
+        "current_tariff": current_tariff,
+        "next_tariff": next_tariff,
+    }
+    if current_full_name:
+        attributes["current_tariff_full_name"] = current_full_name
+    if next_full_name:
+        attributes["next_tariff_full_name"] = next_full_name
+    return attributes
 
 
 class InfoLanBalanceSensor(InfoLanBaseSensor):
@@ -282,3 +339,32 @@ class InfoLanLastUpdateSensor(InfoLanBaseSensor):
         if value is None:
             return None
         return dt_util.parse_datetime(str(value))
+
+
+class InfoLanTariffChangeSensor(InfoLanBaseSensor):
+    """Tariff change status sensor."""
+
+    _attr_translation_key = "tariff_change"
+    _attr_icon = "mdi:swap-horizontal-bold"
+
+    def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the tariff change sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_{self._login_slug}_tariff_change"
+        self.entity_id = f"sensor.infolan_{self._login_slug}_tariff_change"
+
+    @property
+    def native_value(self) -> str:
+        """Return whether a tariff change is planned."""
+        if _build_tariff_change_attributes(self.coordinator.data, self._restored_attrs):
+            return TARIFF_CHANGE_PLANNED
+        if self._restored_state:
+            return self._restored_state
+        return TARIFF_CHANGE_NOT_PLANNED
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return tariff change attributes."""
+        attrs = super().extra_state_attributes
+        attrs.update(_build_tariff_change_attributes(self.coordinator.data, self._restored_attrs))
+        return attrs

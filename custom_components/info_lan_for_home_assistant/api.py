@@ -250,7 +250,11 @@ def _parse_sms_subscription_row(data: dict[str, Any], _title: str, value_html: s
 
 def _parse_next_tariff_row(data: dict[str, Any], _title: str, value_html: str) -> None:
     """Parse the next tariff row."""
-    data["next_tariff"] = _extract_selected_option(value_html)
+    full_tariff_name = _extract_selected_option(value_html)
+    if full_tariff_name is None:
+        return
+    data["next_tariff"] = _shorten_tariff_name(full_tariff_name)
+    data["next_tariff_full_name"] = full_tariff_name
 
 
 def _parse_balance_row(data: dict[str, Any], title: str, value_html: str) -> None:
@@ -266,7 +270,9 @@ def _parse_balance_row(data: dict[str, Any], title: str, value_html: str) -> Non
 def _parse_current_tariff_row(data: dict[str, Any], title: str, value_html: str) -> None:
     """Parse the current tariff row."""
     _label, meta = _split_label_and_meta(title)
-    data["current_tariff"] = _normalize_space(_strip_tags(value_html))
+    full_tariff_name = _normalize_space(_strip_tags(value_html))
+    data["current_tariff"] = _shorten_tariff_name(full_tariff_name)
+    data["current_tariff_full_name"] = full_tariff_name
     if meta:
         data["current_tariff_valid_until"] = meta.removeprefix("действует до ").strip()
 
@@ -344,6 +350,13 @@ def _split_label_and_meta(title: str) -> tuple[str, str | None]:
     if not match:
         return title, None
     return match.group("label").strip(), match.group("meta").strip()
+
+
+def _shorten_tariff_name(value: str) -> str:
+    """Return a compact tariff name for entity state."""
+    shortened = value.split(" (", 1)[0].strip()
+    shortened = re.split(r"\s+за\s+\d", shortened, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+    return shortened or value
 
 
 def _normalize_operation_type(row_class: str, amount: float | None) -> str:
