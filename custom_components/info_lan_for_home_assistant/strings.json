@@ -45,7 +45,7 @@
     },
     "number": {
       "scan_interval": {
-        "name": "Scan Interval"
+        "name": "Update interval"
       }
     },
     "sensor": {

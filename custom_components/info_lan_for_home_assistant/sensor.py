@@ -38,7 +38,7 @@ SENSOR_DESCRIPTIONS: tuple[InfoLanSensorDescription, ...] = (
         "contract_number",
         "contract_number",
         "contract_number",
-        "mdi:file-document-outline",
+        "mdi:card-account-details-outline",
         EntityCategory.DIAGNOSTIC,
     ),
     InfoLanSensorDescription("internet_status", "internet_status", "internet_status", "mdi:web"),
@@ -46,18 +46,16 @@ SENSOR_DESCRIPTIONS: tuple[InfoLanSensorDescription, ...] = (
         "connection_address",
         "connection_address",
         "connection_address",
-        "mdi:map-marker",
+        "mdi:home-map-marker",
         EntityCategory.DIAGNOSTIC,
     ),
     InfoLanSensorDescription(
         "contract_owner",
         "contract_owner",
         "contract_owner",
-        "mdi:account",
+        "mdi:account-circle-outline",
         EntityCategory.DIAGNOSTIC,
     ),
-    InfoLanSensorDescription("sms_number", "sms_number", "sms_number", "mdi:phone"),
-    InfoLanSensorDescription("sms_subscription", "sms_subscription", "sms_subscription", "mdi:message-text"),
     InfoLanSensorDescription("current_tariff", "current_tariff", "current_tariff", "mdi:speedometer"),
     InfoLanSensorDescription("next_tariff", "next_tariff", "next_tariff", "mdi:calendar-arrow-right"),
 )
@@ -178,6 +176,16 @@ class InfoLanTextSensor(InfoLanBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes for current tariff."""
         attrs = super().extra_state_attributes
+        if self._description.key == "contract_owner":
+            for source_key, attr_name in (
+                    ("sms_number", "sms_number"),
+                    ("sms_subscription", "sms_subscription"),
+            ):
+                value = self.coordinator.data.get(source_key)
+                if value is not None:
+                    attrs[attr_name] = value
+                elif attr_name in self._restored_attrs:
+                    attrs[attr_name] = self._restored_attrs[attr_name]
         if self._description.key == "current_tariff":
             valid_until = self.coordinator.data.get("current_tariff_valid_until")
             if valid_until:
@@ -193,6 +201,7 @@ class InfoLanBalanceSensor(InfoLanBaseSensor):
     _attr_translation_key = "current_balance"
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_icon = "mdi:wallet-outline"
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the balance sensor."""
@@ -256,6 +265,7 @@ class InfoLanLastUpdateSensor(InfoLanBaseSensor):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:clock-check-outline"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: InfoLanDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the last update sensor."""
