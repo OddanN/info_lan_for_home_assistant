@@ -35,11 +35,10 @@ _DATE_IN_TITLE_RE = re.compile(r"^(?P<label>.+?)\s*\((?P<meta>.+?)\):?$")
 _BALANCE_RE = re.compile(r"(?P<value>[-+]?\d[\d\s]*,\d+)\s*(?P<currency>[^\s.]+\.?)?")
 _OPERATION_DATE_RE = re.compile(r"\b\d{2}\.\d{2}\.\d{4}\b")
 _SIMPLE_SUMMARY_FIELDS = (
-    ("Р СњР С•Р СР ВµРЎР‚ Р Т‘Р С•Р С–Р С•Р Р†Р С•РЎР‚Р В°", "contract_number"),
-    ("Р РЋРЎвЂљР В°РЎвЂљРЎС“РЎРѓ Р Т‘Р С•РЎРѓРЎвЂљРЎС“Р С—Р В° Р Р† Р ВР Р…РЎвЂљР ВµРЎР‚Р Р…Р ВµРЎвЂљ",
-     "internet_status"),
-    ("Р С’Р Т‘РЎР‚Р ВµРЎРѓ Р С—Р С•Р Т‘Р С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С‘РЎРЏ", "connection_address"),
-    ("Р вЂќР С•Р С–Р С•Р Р†Р С•РЎР‚ Р С•РЎвЂћР С•РЎР‚Р СР В»Р ВµР Р… Р Р…Р В°", "contract_owner"),
+    ("Номер договора", "contract_number"),
+    ("Статус доступа в Интернет", "internet_status"),
+    ("Адрес подключения", "connection_address"),
+    ("Договор оформлен на", "contract_owner"),
 )
 
 
@@ -106,7 +105,7 @@ class InfoLanApiClient:
         form = FormData(default_to_multipart=True)
         form.add_field("userlogin", self._login)
         form.add_field("userpassword", self._password)
-        form.add_field("button", "Р вЂ™Р С•Р в„–РЎвЂљР С‘")
+        form.add_field("button", "Войти")
         try:
             async with self._session.post(
                 INFO_LAN_URL,
@@ -117,7 +116,7 @@ class InfoLanApiClient:
         except ClientError as err:
             raise InfoLanConnectionError(str(err)) from err
 
-        if "name=\"userlogin\"" in html and "name=\"userpassword\"" in html:
+        if 'name="userlogin"' in html and 'name="userpassword"' in html:
             raise InfoLanAuthError("Authentication failed")
 
         try:
@@ -134,12 +133,11 @@ class InfoLanApiClient:
 
 def _parse_account_page(html: str, fallback_login: str) -> dict[str, Any]:
     """Parse the returned personal-account HTML."""
-    if "Р СњР С•Р СР ВµРЎР‚ Р Т‘Р С•Р С–Р С•Р Р†Р С•РЎР‚Р В°:" not in html or "Р вЂќР ВµРЎвЂљР В°Р В»РЎРЉР Р…РЎвЂ№Р в„– Р С•РЎвЂљРЎвЂЎР ВµРЎвЂљ Р С—Р С• Р В±Р В°Р В»Р В°Р Р…РЎРѓРЎС“" not in html:
+    if "Номер договора:" not in html or "Детальный отчет по балансу" not in html:
         raise InfoLanParseError("Expected account blocks were not found")
 
-    main_table_start = html.find("<table border=\"1\" style=\"width: 770px; margin: auto;\" class=\"stats\">")
-    report_marker = html.find(
-        "Р вЂќР ВµРЎвЂљР В°Р В»РЎРЉР Р…РЎвЂ№Р в„– Р С•РЎвЂљРЎвЂЎР ВµРЎвЂљ Р С—Р С• Р В±Р В°Р В»Р В°Р Р…РЎРѓРЎС“")
+    main_table_start = html.find('<table border="1" style="width: 770px; margin: auto;" class="stats">')
+    report_marker = html.find("Детальный отчет по балансу")
     if main_table_start == -1 or report_marker == -1:
         raise InfoLanParseError("Unable to locate main tables")
 
@@ -206,11 +204,11 @@ def _parse_summary_table(table_html: str) -> dict[str, Any]:
         if _parse_simple_summary_field(data, title, value):
             continue
 
-        if "Р СљР В°Р С”РЎРѓР С‘Р СР В°Р В»РЎРЉР Р…РЎвЂ№Р в„– Р С•Р В±Р ВµРЎвЂ°Р В°Р Р…Р Р…РЎвЂ№Р в„– Р С—Р В»Р В°РЎвЂљР ВµР В¶" in title:
+        if "Максимальный обещанный платеж" in title:
             promise_value, currency = _parse_money(value)
             data["promised_payment_limit"] = promise_value
             data["promised_payment_currency"] = currency or DEFAULT_CURRENCY
-        elif "Р СџР С•РЎР‚Р С•Р С– Р В±Р В»Р С•Р С”Р С‘РЎР‚Р С•Р Р†Р С”Р С‘" in title:
+        elif "Порог блокировки" in title:
             threshold_value, currency = _parse_money(value)
             data["block_threshold"] = threshold_value
             data["block_threshold_currency"] = currency or DEFAULT_CURRENCY
@@ -221,13 +219,11 @@ def _parse_summary_table(table_html: str) -> dict[str, Any]:
 def _parse_special_summary_row(data: dict[str, Any], title: str, value_html: str) -> bool:
     """Parse summary rows that need special handling."""
     for marker, handler in (
-            ("Р СњР С•Р СР ВµРЎР‚ Р Т‘Р В»РЎРЏ SMS", _parse_sms_number_row),
-            ("Р СџР С•Р В»РЎС“РЎвЂЎР В°РЎвЂљРЎРЉ SMS Р С•РЎвЂљ Р С”Р С•Р СР С—Р В°Р Р…Р С‘Р С‘",
-             _parse_sms_subscription_row),
-            ("Р СћР В°РЎР‚Р С‘РЎвЂћ Р Р…Р В° РЎРѓР В»Р ВµР Т‘РЎС“РЎР‹РЎвЂ°Р С‘Р в„– Р С—Р ВµРЎР‚Р С‘Р С•Р Т‘",
-             _parse_next_tariff_row),
-            ("Р СћР ВµР С”РЎС“РЎвЂ°Р С‘Р в„– Р В±Р В°Р В»Р В°Р Р…РЎРѓ", _parse_balance_row),
-            ("Р СћР ВµР С”РЎС“РЎвЂ°Р С‘Р в„– РЎвЂљР В°РЎР‚Р С‘РЎвЂћ", _parse_current_tariff_row),
+            ("Номер для SMS", _parse_sms_number_row),
+            ("Получать SMS от компании", _parse_sms_subscription_row),
+            ("Тариф на следующий период", _parse_next_tariff_row),
+            ("Текущий баланс", _parse_balance_row),
+            ("Текущий тариф", _parse_current_tariff_row),
     ):
         if marker in title:
             handler(data, title, value_html)
@@ -270,7 +266,7 @@ def _parse_balance_row(data: dict[str, Any], title: str, value_html: str) -> Non
     data["current_balance"] = balance_value
     data["balance_currency"] = currency or DEFAULT_CURRENCY
     if meta:
-        data["balance_timestamp"] = meta.removeprefix("Р Р…Р В° ").strip()
+        data["balance_timestamp"] = meta.removeprefix("на ").strip()
 
 
 def _parse_current_tariff_row(data: dict[str, Any], title: str, value_html: str) -> None:
@@ -280,8 +276,7 @@ def _parse_current_tariff_row(data: dict[str, Any], title: str, value_html: str)
     data["current_tariff"] = _shorten_tariff_name(full_tariff_name)
     data["current_tariff_full_name"] = full_tariff_name
     if meta:
-        data["current_tariff_valid_until"] = meta.removeprefix(
-            "Р Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ Р Т‘Р С• ").strip()
+        data["current_tariff_valid_until"] = meta.removeprefix("действует до ").strip()
 
 
 def _parse_operations_table(table_html: str) -> list[InfoLanOperation]:
@@ -362,7 +357,7 @@ def _split_label_and_meta(title: str) -> tuple[str, str | None]:
 def _shorten_tariff_name(value: str) -> str:
     """Return a compact tariff name for entity state."""
     shortened = value.split(" (", 1)[0].strip()
-    shortened = re.split(r"\\s+за\\s+\\d", shortened, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+    shortened = re.split(r"\s+за\s+\d", shortened, maxsplit=1, flags=re.IGNORECASE)[0].strip()
     return shortened or value
 
 
