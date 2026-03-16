@@ -156,6 +156,22 @@ def _format_operation(operation: dict[str, Any]) -> str:
     return " | ".join(parts)
 
 
+def _copy_optional_attr(
+        attrs: dict[str, Any],
+        live_data: dict[str, Any],
+        restored_attrs: dict[str, Any],
+        source_key: str,
+        attr_name: str | None = None,
+) -> None:
+    """Copy an attribute from live data or restored attributes when available."""
+    target_name = attr_name or source_key
+    value = live_data.get(source_key)
+    if value is not None:
+        attrs[target_name] = value
+    elif target_name in restored_attrs:
+        attrs[target_name] = restored_attrs[target_name]
+
+
 class InfoLanTextSensor(InfoLanBaseSensor):
     """Text sensor backed by one parsed field."""
 
@@ -188,37 +204,39 @@ class InfoLanTextSensor(InfoLanBaseSensor):
         """Return extra attributes for current tariff."""
         attrs = super().extra_state_attributes
         if self._description.key == "contract_owner":
-            for source_key, attr_name in (
-                    ("sms_number", "sms_number"),
-                    ("sms_subscription", "sms_subscription"),
-            ):
-                value = self.coordinator.data.get(source_key)
-                if value is not None:
-                    attrs[attr_name] = value
-                elif attr_name in self._restored_attrs:
-                    attrs[attr_name] = self._restored_attrs[attr_name]
+            self._add_contract_owner_attributes(attrs)
         if self._description.key == "current_tariff":
-            full_name = self.coordinator.data.get("current_tariff_full_name")
-            if full_name:
-                attrs["full_name"] = full_name
-            elif "full_name" in self._restored_attrs:
-                attrs["full_name"] = self._restored_attrs["full_name"]
-            next_tariff = self.coordinator.data.get("next_tariff")
-            if next_tariff:
-                attrs["next_tariff"] = next_tariff
-            elif "next_tariff" in self._restored_attrs:
-                attrs["next_tariff"] = self._restored_attrs["next_tariff"]
-            next_tariff_full_name = self.coordinator.data.get("next_tariff_full_name")
-            if next_tariff_full_name:
-                attrs["next_tariff_full_name"] = next_tariff_full_name
-            elif "next_tariff_full_name" in self._restored_attrs:
-                attrs["next_tariff_full_name"] = self._restored_attrs["next_tariff_full_name"]
-            valid_until = self.coordinator.data.get("current_tariff_valid_until")
-            if valid_until:
-                attrs["valid_until"] = valid_until
-            elif "valid_until" in self._restored_attrs:
-                attrs["valid_until"] = self._restored_attrs["valid_until"]
+            self._add_current_tariff_attributes(attrs)
         return attrs
+
+    def _add_contract_owner_attributes(self, attrs: dict[str, Any]) -> None:
+        """Append SMS-related attributes to the counterparty sensor."""
+        for source_key in ("sms_number", "sms_subscription"):
+            _copy_optional_attr(attrs, self.coordinator.data, self._restored_attrs, source_key)
+
+    def _add_current_tariff_attributes(self, attrs: dict[str, Any]) -> None:
+        """Append tariff metadata to the current tariff sensor."""
+        _copy_optional_attr(
+            attrs,
+            self.coordinator.data,
+            self._restored_attrs,
+            "current_tariff_full_name",
+            "full_name",
+        )
+        _copy_optional_attr(attrs, self.coordinator.data, self._restored_attrs, "next_tariff")
+        _copy_optional_attr(
+            attrs,
+            self.coordinator.data,
+            self._restored_attrs,
+            "next_tariff_full_name",
+        )
+        _copy_optional_attr(
+            attrs,
+            self.coordinator.data,
+            self._restored_attrs,
+            "current_tariff_valid_until",
+            "valid_until",
+        )
 
 
 def _build_tariff_change_attributes(payload: dict[str, Any], restored_attrs: dict[str, Any]) -> dict[str, Any]:

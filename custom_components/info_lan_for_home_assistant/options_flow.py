@@ -2,20 +2,13 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, OptionsFlow
-from homeassistant.helpers.selector import (
-    NumberSelector,
-    NumberSelectorConfig,
-    NumberSelectorMode,
-)
 
 from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL_HOURS,
-    MAX_SCAN_INTERVAL_HOURS,
-    MIN_SCAN_INTERVAL_HOURS,
 )
+from .helpers import build_scan_interval_schema
 
 
 class InfoLanOptionsFlow(OptionsFlow):
@@ -32,23 +25,7 @@ class InfoLanOptionsFlow(OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_SCAN_INTERVAL,
-                        default=self._config_entry.options.get(
-                            CONF_SCAN_INTERVAL,
-                            DEFAULT_SCAN_INTERVAL_HOURS,
-                        ),
-                    ): NumberSelector(
-                        NumberSelectorConfig(
-                            min=MIN_SCAN_INTERVAL_HOURS,
-                            max=MAX_SCAN_INTERVAL_HOURS,
-                            step=1,
-                            mode=NumberSelectorMode.BOX,
-                            unit_of_measurement="h",
-                        )
-                    )
-                }
+            data_schema=build_scan_interval_schema(
+                self._config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_HOURS)
             ),
         )
