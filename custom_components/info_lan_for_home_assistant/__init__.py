@@ -6,6 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 
 from .api import InfoLanApiClient, InfoLanAuthError
 from .const import CONF_LOGIN, DOMAIN
@@ -14,6 +15,7 @@ from .coordinator import InfoLanDataUpdateCoordinator
 type InfoLanConfigEntry = ConfigEntry[InfoLanApiClient]
 
 PLATFORMS = ["sensor", "number", "button"]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, _config: dict) -> bool:

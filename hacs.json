@@ -6,8 +6,5 @@
   "domains": [
     "info_lan_for_home_assistant"
   ],
-  "documentation": "https://github.com/OddanN/info_lan_for_home_assistant",
-  "authors": [
-    "OddanN"
-  ]
+  "documentation": "https://github.com/OddanN/info_lan_for_home_assistant"
 }
