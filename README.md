@@ -2,12 +2,13 @@
 
 ![GitHub Release](https://img.shields.io/github/v/release/OddanN/info_lan_for_home_assistant?style=flat-square)
 ![GitHub Activity](https://img.shields.io/github/commit-activity/m/OddanN/info_lan_for_home_assistant?style=flat-square)
-![GitHub Downloads](https://img.shields.io/github/downloads/OddanN/info_lan_for_home_assistant/total?style=flat-square)
 ![License](https://img.shields.io/github/license/OddanN/info_lan_for_home_assistant?style=flat-square)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat-square)](https://github.com/hacs/integration)
 
+<!--suppress HtmlDeprecatedAttribute -->
 <p align="center">
-  <img src="logo.png" alt="Info-Lan logo" width="200">
+  <!--suppress CheckImageSize -->
+<img src="https://raw.githubusercontent.com/OddanN/info_lan_for_home_assistant/main/custom_components/info_lan_for_home_assistant/brand/logo.png" alt="Info-Lan logo" width="200">
 </p>
 
 The Info-Lan Integration allows you to connect your Home Assistant instance to the [Info-Lan](https://info-lan.ru/)

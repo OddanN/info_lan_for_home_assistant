@@ -38,18 +38,28 @@
     }
   },
   "entity": {
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    },
+    "number": {
+      "scan_interval": {
+        "name": "Scan Interval"
+      }
+    },
     "sensor": {
       "contract_number": {
-        "name": "Contract number"
+        "name": "Account number"
       },
       "internet_status": {
         "name": "Internet access status"
       },
       "connection_address": {
-        "name": "Connection address"
+        "name": "Contract address"
       },
       "contract_owner": {
-        "name": "Contract owner"
+        "name": "Counterparty"
       },
       "sms_number": {
         "name": "SMS number"
@@ -60,14 +70,17 @@
       "current_tariff": {
         "name": "Current tariff"
       },
-      "next_tariff": {
-        "name": "Next tariff"
-      },
       "current_balance": {
-        "name": "Current balance"
+        "name": "Money balance"
       },
       "operations": {
         "name": "Operations"
+      },
+      "last_update": {
+        "name": "Last update"
+      },
+      "tariff_change": {
+        "name": "Tariff change"
       }
     }
   }
