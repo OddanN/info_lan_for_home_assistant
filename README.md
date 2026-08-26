@@ -3,7 +3,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/OddanN/info_lan_for_home_assistant?style=flat-square)
 ![GitHub Activity](https://img.shields.io/github/commit-activity/m/OddanN/info_lan_for_home_assistant?style=flat-square)
 ![License](https://img.shields.io/github/license/OddanN/info_lan_for_home_assistant?style=flat-square)
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat-square)](https://github.com/hacs/integration)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg?style=flat-square)](https://github.com/hacs/default)
 
 <!--suppress HtmlDeprecatedAttribute -->
 <p align="center">
@@ -16,10 +16,9 @@ Assistant с основными данными по договору, тариф
 
 ## Установка
 
-Проще всего установить интеграцию через [Home Assistant Community Store (HACS)](https://hacs.xyz/). После настройки HACS
-нажмите кнопку ниже
-или [добавьте репозиторий вручную как custom repository](https://hacs.xyz/docs/faq/custom_repositories/), после чего
-интеграция станет доступна для установки как обычная HACS-интеграция.
+Интеграция доступна в каталоге [Home Assistant Community Store (HACS)](https://hacs.xyz/) по умолчанию. Откройте HACS,
+перейдите в раздел `Интеграции`, найдите `Info-Lan` и нажмите `Скачать`. Добавлять репозиторий вручную больше не нужно.
+Также можно сразу открыть страницу интеграции кнопкой ниже.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg?style=flat-square)](https://my.home-assistant.io/redirect/hacs_repository/?owner=OddanN&repository=info_lan_for_home_assistant&category=integration)
 
