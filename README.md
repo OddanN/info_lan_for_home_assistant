@@ -3,7 +3,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/OddanN/info_lan_for_home_assistant?style=flat-square)
 ![GitHub Activity](https://img.shields.io/github/commit-activity/m/OddanN/info_lan_for_home_assistant?style=flat-square)
 ![License](https://img.shields.io/github/license/OddanN/info_lan_for_home_assistant?style=flat-square)
-[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg?style=flat-square)](https://github.com/hacs/default)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=flat-square)](https://github.com/hacs/default)
 
 <!--suppress HtmlDeprecatedAttribute -->
 <p align="center">
