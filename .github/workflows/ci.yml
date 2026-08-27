@@ -108,9 +108,20 @@ jobs:
           echo "Latest OddanN/ha_page release: ${HA_PAGE_REF}"
           echo "ha_page run name: update info_lan_for_home_assistant ${GITHUB_REF_NAME}"
 
-          curl --fail-with-body \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            https://api.github.com/repos/OddanN/ha_page/actions/workflows/ci.yml/dispatches \
-            -d "{\"ref\":\"${HA_PAGE_REF}\",\"inputs\":{\"run_name\":\"CI · update for info_lan_for_home_assistant ${GITHUB_REF_NAME}\"}}"
+          DISPATCH_RESPONSE="$(
+            curl --fail-with-body \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2026-03-10" \
+              https://api.github.com/repos/OddanN/ha_page/actions/workflows/ci.yml/dispatches \
+              -d "{\"ref\":\"${HA_PAGE_REF}\",\"inputs\":{\"run_name\":\"CI · update for info_lan_for_home_assistant ${GITHUB_REF_NAME}\"}}"
+          )"
+
+          RUN_URL="$(printf '%s' "${DISPATCH_RESPONSE}" | jq -r '.html_url // empty')"
+          if [ -n "${RUN_URL}" ]; then
+            echo "ha_page workflow run: ${RUN_URL}"
+            echo "### [ha_page workflow run](${RUN_URL})" >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "Workflow dispatched, but GitHub did not return a run URL"
+          fi
