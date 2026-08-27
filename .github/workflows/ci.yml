@@ -1,5 +1,6 @@
 # Version: 1.0.0
 name: CI
+run-name: ${{ format('CI · {0} · {1}', github.event_name, github.ref_name) }}
 
 on:
   push:
