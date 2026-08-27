@@ -88,6 +88,8 @@ jobs:
             exit 1
           fi
 
+          echo "Latest OddanN/ha_page release: ${HA_PAGE_REF}"
+
           curl --fail-with-body \
             -X POST \
             -H "Accept: application/vnd.github+json" \
