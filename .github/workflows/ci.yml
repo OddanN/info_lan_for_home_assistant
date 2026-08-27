@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger ci.yaml from the latest OddanN/ha_page release
+      - name: Trigger ci.yml from the latest OddanN/ha_page release
         env:
           GH_TOKEN: ${{ secrets.HA_PAGE_WORKFLOW_TOKEN }}
         run: |
@@ -92,5 +92,5 @@ jobs:
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
-            https://api.github.com/repos/OddanN/ha_page/actions/workflows/ci.yaml/dispatches \
+            https://api.github.com/repos/OddanN/ha_page/actions/workflows/ci.yml/dispatches \
             -d "{\"ref\":\"${HA_PAGE_REF}\"}"
