@@ -96,4 +96,4 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             https://api.github.com/repos/OddanN/ha_page/actions/workflows/ci.yml/dispatches \
-            -d "{\"ref\":\"${HA_PAGE_REF}\",\"inputs\":{\"run_name\":\"update for info_lan_for_home_assistant ${GITHUB_REF_NAME}\"}}"
+            -d "{\"ref\":\"${HA_PAGE_REF}\",\"inputs\":{\"run_name\":\"CI · update for info_lan_for_home_assistant ${GITHUB_REF_NAME}\"}}"
