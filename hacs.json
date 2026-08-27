@@ -2,5 +2,7 @@
   "name": "Info-Lan for Home Assistant",
   "country": "RU",
   "homeassistant": "2025.1.0",
-  "render_readme": true
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "info_lan_for_home_assistant.zip"
 }
