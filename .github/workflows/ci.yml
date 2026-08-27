@@ -89,10 +89,11 @@ jobs:
           fi
 
           echo "Latest OddanN/ha_page release: ${HA_PAGE_REF}"
+          echo "ha_page run name: update info_lan_for_home_assistant ${GITHUB_REF_NAME}"
 
           curl --fail-with-body \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             https://api.github.com/repos/OddanN/ha_page/actions/workflows/ci.yml/dispatches \
-            -d "{\"ref\":\"${HA_PAGE_REF}\"}"
+            -d "{\"ref\":\"${HA_PAGE_REF}\",\"inputs\":{\"run_name\":\"update for info_lan_for_home_assistant ${GITHUB_REF_NAME}\"}}"
